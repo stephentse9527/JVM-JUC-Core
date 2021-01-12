@@ -259,7 +259,7 @@ public final int getAndIncrement(){
 }
 ```
 
-`AtomicInteger.getAndIncrement()`调用了`Unsafe.getAndAddInt()`方法。`Unsafe`类的大部分方法都是`native`的，用来像C语言一样从底层操作内存。
+`AtomicInteger.getAndIncrement()`调用了`Unsafe.getAndAddInt()`方法。`Unsafe`类的大部分方法都是`native`的。
 
 ```java
 public final int getAnddAddInt(Object var1,long var2,int var4){
@@ -271,7 +271,7 @@ public final int getAnddAddInt(Object var1,long var2,int var4){
 }
 ```
 
-这个方法的var1和var2，就是根据**对象**和**偏移量**得到在**主内存的快照值**var5。然后`compareAndSwapInt`方法通过var1和var2得到当前**主内存的实际值**。如果这个**实际值**跟**快照值**相等，那么就更新主内存的值为var5+var4。如果不等，那么就一直循环，一直获取快照，一直对比，直到实际值和快照值相等为止。
+这个方法的var1和var2，就是根据**对象**和**偏移量**调用`getIntVolatile`强制从主内存刷新最新值到工作内存，得到**主内存的快照值**var5。`compareAndSwapInt`方法通过var1和var2得到当前**主内存的实际值**。通过自旋的方式，不断比较如**实际值**跟**快照值**是否相等，如果相等那么就更新主内存的值为var5+var4。如果不等，那么就一直循环，一直获取快照，一直对比，直到实际值和快照值相等为止。
 
 比如有A、B两个线程，一开始都从主内存中拷贝了原值为3，A线程执行到`var5=this.getIntVolatile`，即var5=3。此时A线程挂起，B修改原值为4，B线程执行完毕，由于加了volatile，所以这个修改是立即可见的。A线程被唤醒，执行`this.compareAndSwapInt()`方法，发现这个时候主内存的值不等于快照值3，所以继续循环，**重新**从主内存获取。
 
